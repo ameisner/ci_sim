@@ -33,19 +33,6 @@ function get_nominal_astrometry, extname
   return, astr
 end
 
-pro sky_mag_to_e_per_s, mag_per_sq_asec
-
-; input should be sky brightness in mag per sq asec
-
-  if n_elements(mag_per_sq_asec) NE 1 then stop
-
-  par = ci_par_struc()
-  e_per_sq_asec = 10^((par.nominal_zeropoint-mag_per_sq_asec)/2.5)
-
-  print, e_per_sq_asec
-
-end
-
 function nominal_pixel_area, extname
 
 ; return output in units of square asec !!
@@ -65,6 +52,21 @@ function nominal_pixel_area, extname
 
 end
 
+function sky_mag_to_e_per_s, mag_per_sq_asec, extname
+
+; input should be sky brightness in mag per sq asec
+; returns electrons per second **per pixel**
+
+  if n_elements(mag_per_sq_asec) NE 1 then stop
+
+  par = ci_par_struc()
+  e_per_s_per_sq_asec = 10^((par.nominal_zeropoint-mag_per_sq_asec)/2.5)
+
+  e_per_s_per_pixel = e_per_s_per_sq_asec*nominal_pixel_area(extname)
+
+  return, e_per_s_per_pixel
+end
+
 function get_gain, extname
 
 ; e-/ADU
@@ -81,6 +83,19 @@ function get_gain, extname
 
   return, gain
 
+end
+
+function sky_mag_to_adu_per_s, mag_per_sq_asec, extname
+
+  check_valid_extname, extname
+
+  e_per_s_per_pixel = sky_mag_to_e_per_s(mag_per_sq_asec, extname)
+
+  gain = get_gain(extname)
+
+  adu_per_s_per_pixel = e_per_s_per_pixel/gain
+
+  return, adu_per_s_per_pixel
 end
 
 function get_readnoise_electrons, extname

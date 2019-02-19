@@ -33,6 +33,23 @@ function get_nominal_astrometry, extname
   return, astr
 end
 
+function dark_current_rate, t_celsius
+    
+  ; t_celsius - temperature in deg celsius
+  ; I = I(0 Celsius)*2^(T_celsius/dT), dT = doubling rate in deg C
+  ; I(0 Celsius) and hence output will have units of e-/sec/pix
+  ; parameters I(0 Celsius) and dT determined from fit_dark_doubling_rate()
+
+  ; should work for both scalar and array t_celsius inputs
+
+    I0 = 0.0957
+    dT = 6.774
+
+    I = I0*2^(t_celsius/dT)
+
+    return, I
+end
+
 function nominal_pixel_area, extname
 
 ; return output in units of square asec !!
@@ -203,11 +220,18 @@ function _get_ci_flat, extname
 end
 
 pro ci_header_1extname, extname, acttime=acttime, t_celsius=t_celsius
-
+  print, 'stub'
 end
 
-pro ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
+function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
                      t_celsius=t_celsius
+
+; sky_mag should be **mags per sq asec**
+
+  if ~keyword_set(sky_mag) then sky_mag = 20.6
+; DESI-2549, IN.CI-91010 "Assuming nominal 5 sec exposures"
+  if ~keyword_set(acttime) then acttime = 5.0
+  if ~keyword_set(t_celsius) then t_celsius = 10.0
 
   check_valid_extname, extname
 
@@ -225,31 +249,43 @@ pro ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
   
   readnoise_electrons = get_readnoise_electrons(extname)
 
-  im_readnoise_electrons = readnoise*randomn(seed, size(im_electrons, /dim))
+  im_readnoise_electrons = $
+      readnoise_electrons*randomn(seed, size(im_electrons, /dim))
 
   im_electrons += im_readnoise_electrons
 
 ; add constant sky multiplied by flat field
 ;     for now don't add in poisson noise associated with sky
+  sky_e_per_pix = $
+      sky_mag_to_e_per_s(sky_mag, extname)*_get_ci_flat(extname)*acttime
 
+  im_electrons += sky_e_per_pix
 
 ; add in dark current at some point
+;    for now don't add in poisson noise associated with dark current
+  total_dark_current_e = dark_current_rate(t_celsius)*acttime ; for now a scalar
 
+  im_electrons += total_dark_current_e
 
 ; convert to ADU by dividing by the gain !!!
-; convert the image to the right type of integer !!!
 
+  gain = get_gain(extname)
+  im_adu = im_electrons/gain
+
+; convert the image to the right type of integer !!!
+  
+  return, im_adu
 end
 
 ; presumably i'll want to have a way of inputting the (ra, dec) once
 ; i start adding in actual sources ...
 pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius
 
+; sky_mag should be **mags per sq asec**
+
   if ~keyword_set(sky_mag) then sky_mag = 20.6
 ; DESI-2549, IN.CI-91010 "Assuming nominal 5 sec exposures"
   if ~keyword_set(acttime) then acttime = 5.0
-  if ~keyword_set(t_celsius) then t_celsius = 10.0
-
-  
+  if ~keyword_set(t_celsius) then t_celsius = 10.0  
 
 end

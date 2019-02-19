@@ -1,7 +1,8 @@
 function ci_par_struc
 
    par = {width: 3072, height: 2048, $
-          nominal_zeropoint: 26.56}
+          nominal_zeropoint: 26.56, $
+          ci_extnames: ['CIE', 'CIN', 'CIC', 'CIS', 'CIW']}
 
    return, par
 
@@ -138,7 +139,8 @@ pro check_valid_extname, extname
   if n_elements(extname) NE 1 then stop
   if size(extname, /type) NE 7 then stop
 
-  extnames = ['CIE', 'CIN', 'CIC', 'CIS', 'CIW']
+  par = ci_par_struc()
+  extnames = par.ci_extnames
 
   if total(extnames EQ extname) NE 1 then stop
 
@@ -219,12 +221,21 @@ function _get_ci_flat, extname
 
 end
 
-pro ci_header_1extname, extname, acttime=acttime, t_celsius=t_celsius
-  print, 'stub'
+function ci_header_1extname, extname, im, acttime, t_celsius, primary=primary
+
+  extend = keyword_set(primary)
+
+  mkhdr, header, im, /IMAGE, extend=extend
+
+  sxaddpar, header, 'EXTNAME', extname, 'CI camera name'
+  sxaddpar, header, 'CAMTEMP', t_celsius, 'T (deg Celsius)'
+  sxaddpar, header, 'ACTTIME', acttime, 'actual exposure time'
+
+  return, header
 end
 
 function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
-                     t_celsius=t_celsius
+                          t_celsius=t_celsius
 
 ; sky_mag should be **mags per sq asec**
 
@@ -283,9 +294,27 @@ pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius
 
 ; sky_mag should be **mags per sq asec**
 
+  if ~keyword_set(outname) then stop
+  if file_test(outname) then stop ; don't overwrite anything
+
   if ~keyword_set(sky_mag) then sky_mag = 20.6
 ; DESI-2549, IN.CI-91010 "Assuming nominal 5 sec exposures"
   if ~keyword_set(acttime) then acttime = 5.0
   if ~keyword_set(t_celsius) then t_celsius = 10.0  
+
+  par = ci_par_struc()
+
+  for i=0L, n_elements(par.ci_extnames)-1 do begin
+      extname = (par.ci_extnames)[i]
+      print, 'Working on ' + extname
+      print, sky_mag, acttime, t_celsius
+      im = ci_sim_1extname(extname, sky_mag=sky_mag, acttime=acttime, $
+                           t_celsius=t_celsius)
+
+      primary = (i EQ 0)
+      h = ci_header_1extname(extname, im, acttime, t_celsius, primary=primary)
+      print, transpose(h)
+      writefits, outname, im, h, append=(~primary)
+  endfor
 
 end

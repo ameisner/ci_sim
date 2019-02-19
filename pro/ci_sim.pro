@@ -1,10 +1,69 @@
 function ci_par_struc
 
-   par = {width: 3072, height: 2048}
+   par = {width: 3072, height: 2048, $
+          nominal_zeropoint: 26.56}
+
    return, par
 
 end
 
+pro _cache_nominal_astrometry
+
+  COMMON _CI_ASTROM, astrom
+  if n_elements(astrom) EQ 0 then begin
+      fname = '../etc/viewer_astrom_index-as_designed.bigtan.fits'
+      astrom = mrdfits(fname, 1)
+  end
+
+end
+
+function get_nominal_astrometry, extname
+
+  check_valid_extname, extname
+
+  _cache_nominal_astrometry
+  COMMON _CI_ASTROM, astrom
+
+  w = where(astrom.extname EQ extname, nw)
+
+  if (nw NE 1) then stop
+
+  astr = astrom[w[0]]
+
+  return, astr
+end
+
+pro sky_mag_to_e_per_s, mag_per_sq_asec
+
+; input should be sky brightness in mag per sq asec
+
+  if n_elements(mag_per_sq_asec) NE 1 then stop
+
+  par = ci_par_struc()
+  e_per_sq_asec = 10^((par.nominal_zeropoint-mag_per_sq_asec)/2.5)
+
+  print, e_per_sq_asec
+
+end
+
+function nominal_pixel_area, extname
+
+; return output in units of square asec !!
+
+  check_valid_extname, extname
+
+  astr = get_nominal_astrometry(extname)
+
+  cd = astr.cd
+
+  w = where(cd NE 0, nw)
+  if nw NE 2 then stop
+
+  area_sq_asec = abs((cd[w[0]]*3600.0d)*(cd[w[1]]*3600.0d))
+
+  return, area_sq_asec
+
+end
 
 function get_gain, extname
 
@@ -57,7 +116,8 @@ pro _cache_ci_bias
 
   COMMON _CI_BIAS, bias_cie, bias_cin, bias_cic, bias_cis, bias_ciw 
   if n_elements(bias_cie) EQ 0 then begin
-      fname_bias = concat_dir(getenv('CI_REDUCE_ETC'), 'CI_master_bias.fits')
+      fname_bias = concat_dir(getenv('CI_REDUCE_ETC'), $
+          'CI_master_bias.fits.gz')
       bias_cin = readfits(fname_bias, h_cin)
       if strtrim(sxpar(h_cin, 'EXTNAME'), 2) NE 'CIN' then stop
       bias_ciw = readfits(fname_bias, h_ciw, ex=1)
@@ -93,7 +153,8 @@ pro _cache_ci_flat
 
   COMMON _CI_FLAT, flat_cie, flat_cin, flat_cic, flat_cis, flat_ciw 
   if n_elements(flat_cie) EQ 0 then begin
-      fname_flat = concat_dir(getenv('CI_REDUCE_ETC'), 'CI_master_flat.fits')
+      fname_flat = concat_dir(getenv('CI_REDUCE_ETC'), $
+          'CI_master_flat.fits.gz')
       flat_cin = readfits(fname_flat, h_cin)
       if strtrim(sxpar(h_cin, 'EXTNAME'), 2) NE 'CIN' then stop
       flat_ciw = readfits(fname_flat, h_ciw, ex=1)

@@ -289,6 +289,12 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
 
   im_electrons += total_dark_current_e
 
+; this isn't formally the precisely right thing to do but w/e
+  poisson_noise_e = sqrt(sky_e_per_pix + total_dark_current_e)*randomn(seed, $
+      size(im_electrons, /dim))
+
+  im_electrons += poisson_noise_e
+
 ; convert to ADU by dividing by the gain
   gain = get_gain(extname)
   im_adu = im_electrons/gain

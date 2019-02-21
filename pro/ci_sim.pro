@@ -287,13 +287,13 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
 
   im_electrons += total_dark_current_e
 
-; convert to ADU by dividing by the gain !!!
-
+; convert to ADU by dividing by the gain
   gain = get_gain(extname)
   im_adu = im_electrons/gain
 
-; convert the image to the right type of integer !!!
-  
+; convert the image to the right type of integer
+  im_adu = uint(round(im_adu)) ; round to avoid biasing low
+
   return, im_adu
 end
 

@@ -34,6 +34,27 @@ function get_nominal_astrometry, extname
   return, astr
 end
 
+function get_astrometry_radec, telra, teldec, extname
+
+  check_valid_extname, extname
+
+  if n_elements(telra) NE 1 then stop
+  if n_elements(teldec) NE 1 then stop
+
+  if (teldec LT -90) OR (teldec GT 90) then stop
+  if (telra LT 0) OR (telra GE 360) then stop
+
+  if size(telra, /type) NE 5 then stop
+  if size(teldec, /type) NE 5 then stop
+
+; this is centered at (ra, dec) = (0, 0)
+  astr = get_nominal_astrometry(extname)
+
+  astr.crval = [telra, teldec]
+
+  return, astr
+end
+
 function dark_current_rate, t_celsius
     
   ; t_celsius - temperature in deg celsius

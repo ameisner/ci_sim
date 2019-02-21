@@ -221,7 +221,8 @@ function _get_ci_flat, extname
 
 end
 
-function ci_header_1extname, extname, im, acttime, t_celsius, primary=primary
+function ci_header_1extname, extname, im, acttime, t_celsius, $
+                             primary=primary, sky_mag=sky_mag
 
   extend = keyword_set(primary)
 
@@ -230,6 +231,14 @@ function ci_header_1extname, extname, im, acttime, t_celsius, primary=primary
   sxaddpar, header, 'EXTNAME', extname, 'CI camera name'
   sxaddpar, header, 'CAMTEMP', t_celsius, 'T (deg Celsius)'
   sxaddpar, header, 'ACTTIME', acttime, 'actual exposure time'
+
+; this would be problematic if sky_mag were set to 0.0, although that
+; seems like an input unlikely to ever be specified
+
+; obviously, the real raw data won't come with a sky magnitude
+; specified in its header, but this may be useful for debugging
+  if keyword_set(sky_mag) then $
+      sxaddpar, header, 'SKYMAG', sky_mag, 'sky mag per sq asec AB'
 
   return, header
 end
@@ -312,7 +321,8 @@ pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius
                            t_celsius=t_celsius)
 
       primary = (i EQ 0)
-      h = ci_header_1extname(extname, im, acttime, t_celsius, primary=primary)
+      h = ci_header_1extname(extname, im, acttime, t_celsius, $
+                             primary=primary, sky_mag=sky_mag)
       print, transpose(h)
       writefits, outname, im, h, append=(~primary)
   endfor

@@ -244,7 +244,7 @@ function ci_header_1extname, extname, im, acttime, t_celsius, $
 end
 
 function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
-                          t_celsius=t_celsius
+                          t_celsius=t_celsius, seed=seed
 
 ; sky_mag should be **mags per sq asec**
 
@@ -266,7 +266,6 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
   im_electrons += bias*gain
 
 ; add readnoise
-  
   readnoise_electrons = get_readnoise_electrons(extname)
 
   im_readnoise_electrons = $
@@ -299,7 +298,8 @@ end
 
 ; presumably i'll want to have a way of inputting the (ra, dec) once
 ; i start adding in actual sources ...
-pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius
+pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, $
+            seed=seed
 
 ; sky_mag should be **mags per sq asec**
 
@@ -318,7 +318,7 @@ pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius
       print, 'Working on ' + extname
       print, sky_mag, acttime, t_celsius
       im = ci_sim_1extname(extname, sky_mag=sky_mag, acttime=acttime, $
-                           t_celsius=t_celsius)
+                           t_celsius=t_celsius, seed=seed)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $

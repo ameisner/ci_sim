@@ -222,7 +222,7 @@ function _get_ci_flat, extname
 end
 
 function ci_header_1extname, extname, im, acttime, t_celsius, $
-                             primary=primary, sky_mag=sky_mag
+                             primary=primary, sky_mag=sky_mag, seed=seed
 
   extend = keyword_set(primary)
 
@@ -239,6 +239,9 @@ function ci_header_1extname, extname, im, acttime, t_celsius, $
 ; specified in its header, but this may be useful for debugging
   if keyword_set(sky_mag) then $
       sxaddpar, header, 'SKYMAG', sky_mag, 'sky mag per sq asec AB'
+
+  if keyword_set(seed) then $
+      sxaddpar, header, 'SEED', seed, 'input seed for random generation'
 
   return, header
 end
@@ -311,6 +314,10 @@ pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, $
   if ~keyword_set(acttime) then acttime = 5.0
   if ~keyword_set(t_celsius) then t_celsius = 10.0  
 
+; store seed's original value in order to store it in the output image
+; headers for debugging purposes
+  if keyword_set(seed) then _seed = seed
+
   par = ci_par_struc()
 
   for i=0L, n_elements(par.ci_extnames)-1 do begin
@@ -322,7 +329,7 @@ pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, $
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
-                             primary=primary, sky_mag=sky_mag)
+                             primary=primary, sky_mag=sky_mag, seed=_seed)
       print, transpose(h)
       writefits, outname, im, h, append=(~primary)
   endfor

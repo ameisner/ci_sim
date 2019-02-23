@@ -387,6 +387,8 @@ function ci_header_1extname, extname, im, acttime, t_celsius, $
       sxaddpar, header, 'FWHMPY', fwhm_pix[1], 'y FWHM in pixels'
   endif
 
+  sxdelpar, header, 'HISTORY'
+
   return, header
 end
 

@@ -55,6 +55,87 @@ function get_astrometry_radec, telra, teldec, extname
   return, astr
 end
 
+function psf_stamp_size
+
+; as a function of how bright a source is, return the 
+; necessary PSF stamp size in pixels
+
+  return, -1
+end
+
+function shifted_psf_stamp, fwhm_pix, frac_shift
+
+; need a bunch of checks of frac_shift
+
+; renormalize when done shifting
+
+  return, -1
+
+end
+
+function scale_psf, stamp, flux
+
+  if total(stamp LT 0) NE 0 then stop
+
+  return, (stamp/total(stamp))*flux
+
+end
+
+function centered_psf_stamp, fwhm_pix, sidelen=sidelen
+
+; sidelen keyword argument intended to be optional input
+
+  if n_elements(fwhm_pix) NE 2 then stop
+
+; demand that sidelength always be *odd* integer
+
+  if ~keyword_set(sidelen) then $
+      sidelen = long(round(max(fwhm_pix)*5)) + $
+              ((long(round(max(fwhm_pix)*5)) MOD 2) EQ 0)
+
+  if n_elements(sidelen) NE 1 then stop
+  if round(sidelen) NE sidelen then stop
+  if (sidelen MOD 2) EQ 0 then stop
+
+  psf = psf_gaussian(npixel=[sidelen, sidelen], fwhm=fwhm_pix, /normalize)
+
+  return, psf
+
+end
+
+function fwhm_asec_to_pix, fwhm_asec, extname, force_symmetric=force_symmetric
+
+; force_symmetric is optional boolean argument meant to allow
+; forcing of PSF to be symmetric in terms of fwhm_x, fwhm_y - this
+; may be useful for downstream testing purposes
+
+; note that there will be an x direction fwhm in pixels
+; and also a y direction fwhm in pixels
+
+  if n_elements(fwhm_asec) NE 1 then stop
+
+  check_valid_extname, extname
+
+  astr = get_nominal_astrometry(extname)
+  
+  w = where(astr.cd NE 0)
+
+
+  platescale_x = abs((astr.cd)[w[0]])*3600.0d ; asec/pix
+  platescale_y = abs((astr.cd)[w[1]])*3600.0d ; asec/pix
+
+  fwhm_x = fwhm_asec/platescale_x
+  fwhm_y = fwhm_asec/platescale_y
+
+  if keyword_set(force_symmetric) then begin
+      fwhm_mean = (fwhm_x + fwhm_y)/2
+      fwhm_x = fwhm_mean
+      fwhm_y = fwhm_mean
+  endif
+
+  return, [fwhm_x, fwhm_y]
+end
+
 function dark_current_rate, t_celsius
     
   ; t_celsius - temperature in deg celsius
@@ -242,6 +323,34 @@ function _get_ci_flat, extname
 
 end
 
+function sources_only_image, fwhm_pix, acttime
+
+; for initial testing purposes, add just one 
+; moderately bright source right near the
+; middle of the exposure
+
+  par = ci_par_struc()
+  cat = {x: 1500.0d, y: 1000.0d, mag_ab: 17.0}
+
+; construct this image in units of electrons !!!
+
+  im_electrons = fltarr(par.width, par.height)
+
+  for i=0L, n_elements(cat)-1 do begin
+      psf = centered_psf_stamp(fwhm_pix, sidelen=sidelen)
+      flux_electrons = $
+          (10^((par.nominal_zeropoint - cat[i].mag_ab)/2.5))*acttime
+      psf = scale_psf(psf, flux_electrons)
+      ix = long(round(cat[i].x))
+      iy = long(round(cat[i].y))
+      half = long(sidelen)/2
+
+      im_electrons[(ix-half):(ix+half), (iy-half):(iy+half)] = psf
+  endfor
+
+  return, im_electrons
+end
+
 function ci_header_1extname, extname, im, acttime, t_celsius, $
                              primary=primary, sky_mag=sky_mag, seed=seed, $
                              telra=telra, teldec=teldec
@@ -277,7 +386,8 @@ function ci_header_1extname, extname, im, acttime, t_celsius, $
 end
 
 function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
-                          t_celsius=t_celsius, seed=seed
+                          t_celsius=t_celsius, seed=seed, $
+                          fwhm_asec=fwhm_asec
 
 ; sky_mag should be **mags per sq asec**
 
@@ -308,8 +418,9 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
 
 ; add constant sky multiplied by flat field
 ;     for now don't add in poisson noise associated with sky
+  flat = _get_ci_flat(extname)
   sky_e_per_pix = $
-      sky_mag_to_e_per_s(sky_mag, extname)*_get_ci_flat(extname)*acttime
+      sky_mag_to_e_per_s(sky_mag, extname)*flat*acttime
 
   im_electrons += sky_e_per_pix
 
@@ -319,8 +430,13 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
 
   im_electrons += total_dark_current_e
 
+  fwhm_pix = fwhm_asec_to_pix(fwhm_asec, extname, /force_symmetric)
+  im_sources_e = sources_only_image(fwhm_pix, acttime)*flat
+
+  im_electrons += im_sources_e
 ; this isn't formally the precisely right thing to do but w/e
-  poisson_noise_e = sqrt(sky_e_per_pix + total_dark_current_e)*randomn(seed, $
+  poisson_noise_e = sqrt(sky_e_per_pix + total_dark_current_e + $
+      im_sources_e)*randomn(seed, $
       size(im_electrons, /dim))
 
   im_electrons += poisson_noise_e
@@ -336,7 +452,8 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
 end
 
 pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
-            acttime=acttime, t_celsius=t_celsius, seed=seed
+            acttime=acttime, t_celsius=t_celsius, seed=seed, $
+            fwhm_asec=fwhm_asec
 
 ; sky_mag should be **mags per sq asec**
 
@@ -349,6 +466,8 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
   if ~keyword_set(t_celsius) then t_celsius = 10.0
   if ~keyword_set(telra) then telra = 0.0d
   if ~keyword_set(teldec) then teldec = 0.0d  
+; my guess at median r band seeing with Mayall ...
+  if ~keyword_set(fwhm_asec) then fwhm_asec = 1.25
 
 ; store seed's original value in order to store it in the output image
 ; headers for debugging purposes
@@ -361,7 +480,7 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
       print, 'Working on ' + extname
       print, sky_mag, acttime, t_celsius
       im = ci_sim_1extname(extname, sky_mag=sky_mag, acttime=acttime, $
-                           t_celsius=t_celsius, seed=seed)
+                           t_celsius=t_celsius, seed=seed, fwhm_asec=fwhm_asec)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $

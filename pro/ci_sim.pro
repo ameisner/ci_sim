@@ -353,7 +353,7 @@ end
 
 function ci_header_1extname, extname, im, acttime, t_celsius, $
                              primary=primary, sky_mag=sky_mag, seed=seed, $
-                             telra=telra, teldec=teldec
+                             telra=telra, teldec=teldec, fwhm_pix=fwhm_pix
 
   check_valid_extname, extname
 
@@ -382,13 +382,19 @@ function ci_header_1extname, extname, im, acttime, t_celsius, $
   if keyword_set(seed) then $
       sxaddpar, header, 'SEED', seed, 'input seed for random generation'
 
+  if keyword_set(fwhm_pix) then begin
+      sxaddpar, header, 'FWHMPX', fwhm_pix[0], 'x FWHM in pixels'
+      sxaddpar, header, 'FWHMPY', fwhm_pix[1], 'y FWHM in pixels'
+  endif
+
   return, header
 end
 
 function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
                           t_celsius=t_celsius, seed=seed, $
-                          fwhm_asec=fwhm_asec
+                          fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix
 
+; fwhm_pix meant to be used as optional **output**
 ; sky_mag should be **mags per sq asec**
 
   if ~keyword_set(sky_mag) then sky_mag = 20.6
@@ -480,12 +486,13 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
       print, 'Working on ' + extname
       print, sky_mag, acttime, t_celsius
       im = ci_sim_1extname(extname, sky_mag=sky_mag, acttime=acttime, $
-                           t_celsius=t_celsius, seed=seed, fwhm_asec=fwhm_asec)
+                           t_celsius=t_celsius, seed=seed, $
+                           fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
                              primary=primary, sky_mag=sky_mag, seed=_seed, $
-                             telra=telra, teldec=teldec)
+                             telra=telra, teldec=teldec, fwhm_pix=fwhm_pix)
       print, transpose(h)
       writefits, outname, im, h, append=(~primary)
   endfor

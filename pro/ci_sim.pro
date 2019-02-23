@@ -243,11 +243,20 @@ function _get_ci_flat, extname
 end
 
 function ci_header_1extname, extname, im, acttime, t_celsius, $
-                             primary=primary, sky_mag=sky_mag, seed=seed
+                             primary=primary, sky_mag=sky_mag, seed=seed, $
+                             telra=telra, teldec=teldec
+
+  check_valid_extname, extname
+
+  if ~keyword_set(telra) then telra = 0.0d
+  if ~keyword_set(teldec) then teldec = 0.0d
+
+  astr = get_astrometry_radec(telra, teldec, extname)
 
   extend = keyword_set(primary)
 
   mkhdr, header, im, /IMAGE, extend=extend
+  putast, header, astr
 
   sxaddpar, header, 'EXTNAME', extname, 'CI camera name'
   sxaddpar, header, 'CAMTEMP', t_celsius, 'T (deg Celsius)'
@@ -326,10 +335,8 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
   return, im_adu
 end
 
-; presumably i'll want to have a way of inputting the (ra, dec) once
-; i start adding in actual sources ...
-pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, $
-            seed=seed
+pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
+            acttime=acttime, t_celsius=t_celsius, seed=seed
 
 ; sky_mag should be **mags per sq asec**
 
@@ -339,7 +346,9 @@ pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, $
   if ~keyword_set(sky_mag) then sky_mag = 20.6
 ; DESI-2549, IN.CI-91010 "Assuming nominal 5 sec exposures"
   if ~keyword_set(acttime) then acttime = 5.0
-  if ~keyword_set(t_celsius) then t_celsius = 10.0  
+  if ~keyword_set(t_celsius) then t_celsius = 10.0
+  if ~keyword_set(telra) then telra = 0.0d
+  if ~keyword_set(teldec) then teldec = 0.0d  
 
 ; store seed's original value in order to store it in the output image
 ; headers for debugging purposes
@@ -356,7 +365,8 @@ pro ci_sim, outname, sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, $
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
-                             primary=primary, sky_mag=sky_mag, seed=_seed)
+                             primary=primary, sky_mag=sky_mag, seed=_seed, $
+                             telra=telra, teldec=teldec)
       print, transpose(h)
       writefits, outname, im, h, append=(~primary)
   endfor

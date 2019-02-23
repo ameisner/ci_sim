@@ -481,17 +481,23 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
 
   par = ci_par_struc()
 
+  if (n_elements(sky_mag) NE 1) AND $
+     (n_elements(sky_mag) NE n_elements(par.ci_extnames)) then stop
+
+  sky_mag_array = (n_elements(sky_mag) EQ n_elements(par.ci_extnames))
+
   for i=0L, n_elements(par.ci_extnames)-1 do begin
       extname = (par.ci_extnames)[i]
       print, 'Working on ' + extname
-      print, sky_mag, acttime, t_celsius
-      im = ci_sim_1extname(extname, sky_mag=sky_mag, acttime=acttime, $
+      if sky_mag_array then _sky_mag = sky_mag[i] else _sky_mag = sky_mag
+      print, _sky_mag, acttime, t_celsius
+      im = ci_sim_1extname(extname, sky_mag=_sky_mag, acttime=acttime, $
                            t_celsius=t_celsius, seed=seed, $
                            fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
-                             primary=primary, sky_mag=sky_mag, seed=_seed, $
+                             primary=primary, sky_mag=_sky_mag, seed=_seed, $
                              telra=telra, teldec=teldec, fwhm_pix=fwhm_pix)
       print, transpose(h)
       writefits, outname, im, h, append=(~primary)

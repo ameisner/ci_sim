@@ -369,9 +369,21 @@ function ci_header_1extname, extname, im, acttime, t_celsius, $
   mkhdr, header, im, /IMAGE, extend=extend
   putast, header, astr
 
-  sxaddpar, header, 'EXTNAME', extname, 'CI camera name'
-  sxaddpar, header, 'CAMTEMP', t_celsius, 'T (deg Celsius)'
-  sxaddpar, header, 'ACTTIME', acttime, 'actual exposure time'
+  sxaddpar, header, 'EXTNAME', extname, 'Extension name' ; CI camera name
+  sxaddpar, header, 'CAMTEMP', t_celsius, '[deg] Camera temperature' ; Celsius
+  sxaddpar, header, 'ACTTIME', acttime, '[s] Actual exposure time'
+  sxaddpar, header, 'REQRA', telra, $
+      '[deg] Requested right ascension (observer input)'
+  sxaddpar, header, 'REQDEC', teldec, $
+      '[deg] Requested declination (observer input)'
+  sxaddpar, header, 'TARGTRA', telra, $
+      '[deg] Target right ascension (to TCS)'
+  sxaddpar, header, 'TARGTDEC', teldec, $
+      '[deg] Target declination (to TCS)'
+  sxaddpar, header, 'SKYRA', telra, $
+      '[deg] on sky right ascension (from TCS) '
+  sxaddpar, header, 'SKYDEC', teldec, $
+      '[deg] on sky declination (from TCS)'
 
 ; this would be problematic if sky_mag were set to 0.0, although that
 ; seems like an input unlikely to ever be specified

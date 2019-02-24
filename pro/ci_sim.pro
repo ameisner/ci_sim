@@ -305,6 +305,16 @@ pro _cache_ci_flat
 
 end
 
+pro _cache_desi_tiles
+
+  COMMON _DESI_TILES, desi_tiles
+  if n_elements(desi_tiles) EQ 0 then begin
+      fname_desi_tiles = concat_dir(getenv('CI_REDUCE_ETC'), 'desi-tiles.fits')
+      desi_tiles = mrdfits(fname_desi_tiles, 1)
+  endif
+
+end
+
 function _get_ci_flat, extname
 
   check_valid_extname, extname

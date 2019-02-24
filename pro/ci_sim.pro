@@ -330,7 +330,9 @@ function sources_only_image, fwhm_pix, acttime
 ; middle of the exposure
 
   par = ci_par_struc()
-  cat = {x: 1500.0d, y: 1000.0d, mag_ab: 17.0}
+  cat = replicate({x: 0.0d, y: 0.0d, mag_ab: 0.0}, 2)
+  cat[0].x = 1500.0d & cat[0].y = 1000.0d & cat[0].mag_ab = 17.0
+  cat[1].x = 1800.0d & cat[1].y = 1200.0d & cat[1].mag_ab = 18.0
 
 ; construct this image in units of electrons !!!
 

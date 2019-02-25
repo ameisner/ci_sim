@@ -530,3 +530,61 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
   endfor
 
 end
+
+pro sim_desi_pointing, desi_tiles_row, outdir=outdir
+
+; desi_tiles_row should be one row of the desi-tiles.fits table
+
+  if ~keyword_set(outdir) then $
+      outdir = '/global/cscratch1/sd/ameisner/ci_data_challenge/pass0'
+
+  if size(desi_tiles_row, /type) NE 8 then stop
+  if n_elements(desi_tiles_row) NE 1 then stop
+
+  if (desi_tiles_row.pass NE 0) OR ~desi_tiles_row.in_desi then stop
+
+  telra = desi_tiles_row.ra
+  teldec = desi_tiles_row.dec
+
+  outname = 'dci_' + string(desi_tiles_row.tileid, format='(I05)') + $
+      '.fits'
+
+  outname = concat_dir(outdir, outname)
+
+  if file_test(outname) then stop
+
+  print, 'Working on: TILEID = ', desi_tiles_row.tileid, $
+      ' , pass = ', desi_tiles_row.pass, $
+      ' , ra = ', desi_tiles_row.ra, ' , ', desi_tiles_row.dec, $
+      ' , output name = ', outname
+
+  seed = long(desi_tiles_row.tileid)
+  ci_sim, outname, telra=desi_tiles_row.ra, teldec=desi_tiles_row.dec, $
+      sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, seed=seed, $
+      fwhm_asec=fwhm_asec
+
+end
+
+pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir
+
+; wrapper for sim_desi_pointing
+
+  _cache_desi_tiles
+  COMMON _DESI_TILES, all_tiles
+
+  desi_tiles_pass0 = all_tiles[where((all_tiles.pass EQ 0) AND $
+                                      all_tiles.in_desi, n_sim)]
+
+  if ~keyword_set(indstart) then indstart = 0L
+  if ~keyword_set(nproc) then nproc = n_sim
+
+  indstart = long(indstart)
+  nproc = long(nproc)
+
+  indend = (indstart + nproc - 1) < (n_sim - 1)
+
+  for i=indstart, indend do begin
+      sim_desi_pointing, desi_tiles_pass0[i], outdir=outdir
+  endfor
+
+end

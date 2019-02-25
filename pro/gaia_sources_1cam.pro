@@ -27,11 +27,11 @@ function gaia_sources_1cam, astr
   x = x[where(good)]
   y = y[where(good)]
 
-  addstr = replicate({x_ci: 0.0d, y_ci: 0.0d}, $
+  addstr = replicate({x: 0.0d, y: 0.0d}, $
       ngood)
 
-  addstr.x_ci = x
-  addstr.y_ci = y
+  addstr.x = x
+  addstr.y = y
 
   result = struct_addtags(result, addstr)
 

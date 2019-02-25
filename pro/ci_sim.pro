@@ -81,7 +81,7 @@ end
 
 function scale_psf, stamp, flux
 
-  if total(stamp LT 0) NE 0 then stop
+  if total(stamp LT -1.0d-8) NE 0 then stop
 
   return, (stamp/total(stamp))*flux
 
@@ -369,6 +369,7 @@ function sources_only_image, fwhm_pix, acttime, astr, $
       cat[1].x = 1800.0d & cat[1].y = 1200.0d & cat[1].mag_ab = 18.0
   endif else begin
       cat = gaia_sources_1cam(astr)
+      print, 'Adding ', n_elements(cat), ' Gaia sources'
       addstr = replicate({mag_ab: 0.0}, n_elements(cat))
       addstr.mag_ab = cat.phot_g_mean_mag
       cat = struct_addtags(cat, addstr)
@@ -378,12 +379,17 @@ function sources_only_image, fwhm_pix, acttime, astr, $
   im_electrons = fltarr(par.width, par.height)
 
   for i=0L, n_elements(cat)-1 do begin
-      psf = centered_psf_stamp(fwhm_pix, sidelen=sidelen)
+      ix = long(round(cat[i].x))
+      iy = long(round(cat[i].y))
+
+      frac_shift = [cat[i].x-ix, cat[i].y-iy]
+
+      psf = shifted_psf_stamp(fwhm_pix, frac_shift, sidelen=sidelen)
+
       flux_electrons = $
           (10^((par.nominal_zeropoint - cat[i].mag_ab)/2.5))*acttime
       psf = scale_psf(psf, flux_electrons)
-      ix = long(round(cat[i].x))
-      iy = long(round(cat[i].y))
+
       half = long(sidelen)/2
 
       xmin_int = ix - half
@@ -402,6 +408,8 @@ function sources_only_image, fwhm_pix, acttime, astr, $
           psf[(xmin_add-xmin_int):(sidelen-(xmax_int-xmax_add)-1), $
               (ymin_add-ymin_int):(sidelen-(ymax_int-ymax_add)-1)] 
   endfor
+
+  delvarx, sidelen
 
   return, im_electrons
 end

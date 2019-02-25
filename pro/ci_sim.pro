@@ -79,16 +79,6 @@ function psf_stamp_size
   return, -1
 end
 
-function shifted_psf_stamp, fwhm_pix, frac_shift
-
-; need a bunch of checks of frac_shift
-
-; renormalize when done shifting
-
-  return, -1
-
-end
-
 function scale_psf, stamp, flux
 
   if total(stamp LT 0) NE 0 then stop
@@ -116,6 +106,21 @@ function centered_psf_stamp, fwhm_pix, sidelen=sidelen
   psf = psf_gaussian(npixel=[sidelen, sidelen], fwhm=fwhm_pix, /normalize)
 
   return, psf
+
+end
+
+function shifted_psf_stamp, fwhm_pix, frac_shift, sidelen=sidelen
+
+  if n_elements(frac_shift) NE 2 then stop
+  if total(abs(frac_shift) GT 0.5) NE 0 then stop
+
+  centered_psf = centered_psf_stamp(fwhm_pix, sidelen=sidelen)
+
+  shifted_psf = sshift2d(centered_psf, frac_shift)
+; renormalize when done shifting
+  shifted_psf = scale_psf(shifted_psf, 1.0)
+
+  return, shifted_psf
 
 end
 

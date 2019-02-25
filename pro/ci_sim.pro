@@ -350,7 +350,7 @@ function _get_ci_flat, extname
 end
 
 function sources_only_image, fwhm_pix, acttime, astr, $
-                             gaia_sources=gaia_sources
+                             do_gaia_sources=do_gaia_sources
 
 ; for initial testing purposes, add just one 
 ; moderately bright source right near the
@@ -358,7 +358,7 @@ function sources_only_image, fwhm_pix, acttime, astr, $
 
   par = ci_par_struc()
 
-  if ~keyword_set(gaia_sources) then begin
+  if ~keyword_set(do_gaia_sources) then begin
       cat = replicate({x: 0.0d, y: 0.0d, mag_ab: 0.0}, 2)
       cat[0].x = 1500.0d & cat[0].y = 1000.0d & cat[0].mag_ab = 17.0
       cat[1].x = 1800.0d & cat[1].y = 1200.0d & cat[1].mag_ab = 18.0
@@ -458,7 +458,7 @@ end
 function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
                           t_celsius=t_celsius, seed=seed, $
                           fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix, $
-                          astr=astr, gaia_sources=gaia_sources
+                          astr=astr, do_gaia_sources=do_gaia_sources
 
 ; fwhm_pix meant to be used as optional **output**
 ; sky_mag should be **mags per sq asec**
@@ -504,7 +504,7 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
 
   fwhm_pix = fwhm_asec_to_pix(fwhm_asec, extname, /force_symmetric)
   im_sources_e = sources_only_image(fwhm_pix, acttime, $
-      astr, gaia_sources=gaia_sources)*flat
+      astr, do_gaia_sources=do_gaia_sources)*flat
 
   im_electrons += im_sources_e
 ; this isn't formally the precisely right thing to do but w/e
@@ -526,7 +526,7 @@ end
 
 pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
             acttime=acttime, t_celsius=t_celsius, seed=seed, $
-            fwhm_asec=fwhm_asec, gaia_sources=gaia_sources
+            fwhm_asec=fwhm_asec, do_gaia_sources=do_gaia_sources
 
 ; sky_mag should be **mags per sq asec**
 
@@ -564,7 +564,7 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
       im = ci_sim_1extname(extname, sky_mag=_sky_mag, acttime=acttime, $
                            t_celsius=t_celsius, seed=seed, $
                            fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix,astr=astr, $
-                           gaia_sources=gaia_sources)
+                           do_gaia_sources=do_gaia_sources)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
@@ -607,7 +607,7 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir
   seed = long(desi_tiles_row.tileid)
   ci_sim, outname, telra=desi_tiles_row.ra, teldec=desi_tiles_row.dec, $
       sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, seed=seed, $
-      fwhm_asec=fwhm_asec, /gaia_sources
+      fwhm_asec=fwhm_asec, /do_gaia_sources
 
 end
 

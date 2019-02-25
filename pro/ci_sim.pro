@@ -381,14 +381,15 @@ end
 
 function ci_header_1extname, extname, im, acttime, t_celsius, $
                              primary=primary, sky_mag=sky_mag, seed=seed, $
-                             telra=telra, teldec=teldec, fwhm_pix=fwhm_pix
+                             telra=telra, teldec=teldec, fwhm_pix=fwhm_pix, $
+                             astr=astr
+
+; make astr a required argument rather than an optional keyword argument?
 
   check_valid_extname, extname
 
   if ~keyword_set(telra) then telra = 0.0d
   if ~keyword_set(teldec) then teldec = 0.0d
-
-  astr = get_astrometry_radec(telra, teldec, extname)
 
   extend = keyword_set(primary)
 
@@ -434,7 +435,8 @@ end
 
 function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
                           t_celsius=t_celsius, seed=seed, $
-                          fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix
+                          fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix, $
+                          astr=astr
 
 ; fwhm_pix meant to be used as optional **output**
 ; sky_mag should be **mags per sq asec**
@@ -533,14 +535,18 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
       print, 'Working on ' + extname
       if sky_mag_array then _sky_mag = sky_mag[i] else _sky_mag = sky_mag
       print, _sky_mag, acttime, t_celsius
+
+      astr = get_astrometry_radec(telra, teldec, extname)
+
       im = ci_sim_1extname(extname, sky_mag=_sky_mag, acttime=acttime, $
                            t_celsius=t_celsius, seed=seed, $
-                           fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix)
+                           fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix,astr=astr)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
                              primary=primary, sky_mag=_sky_mag, seed=_seed, $
-                             telra=telra, teldec=teldec, fwhm_pix=fwhm_pix)
+                             telra=telra, teldec=teldec, fwhm_pix=fwhm_pix, $
+                             astr=astr)
       print, transpose(h)
       writefits, outname, im, h, append=(~primary)
   endfor

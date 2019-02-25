@@ -1,13 +1,3 @@
-function ci_par_struc
-
-   par = {width: 3072, height: 2048, $
-          nominal_zeropoint: 26.56, $
-          ci_extnames: ['CIE', 'CIN', 'CIC', 'CIS', 'CIW']}
-
-   return, par
-
-end
-
 pro _cache_nominal_astrometry
 
   COMMON _CI_ASTROM, astrom
@@ -53,6 +43,32 @@ function get_astrometry_radec, telra, teldec, extname
   astr.crval = [telra, teldec]
 
   return, astr
+end
+
+function ci_bdy_coords
+
+  par = ci_par_struc()
+
+  x_bottom = dindgen(par.width+1) - 0.5d
+  y_bottom = dblarr(par.width+1) - 0.5d
+
+  x_top = dindgen(par.width+1) - 0.5d
+  y_top = dblarr(par.width+1) + (par.height - 1.0d) + 0.5d
+
+  x_left = dblarr(par.height+1) - 0.5d
+  y_left = dindgen(par.height+1) - 0.5d
+
+  x_right = dblarr(par.height+1) + (par.width - 1.0d) + 0.5d
+  y_right = dindgen(par.height+1) - 0.5
+
+  x_bdy = [x_bottom, x_right, reverse(x_top), reverse(x_left)]
+  y_bdy = [y_bottom, y_right, reverse(y_top), reverse(y_left)]
+
+  outstr = replicate({x_bdy: 0.0d, y_bdy: 0.0d}, n_elements(x_bdy))
+  outstr.x_bdy = x_bdy
+  outstr.y_bdy = y_bdy
+
+  return, outstr
 end
 
 function psf_stamp_size
@@ -536,7 +552,7 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir
 ; desi_tiles_row should be one row of the desi-tiles.fits table
 
   if ~keyword_set(outdir) then $
-      outdir = '/global/cscratch1/sd/ameisner/ci_data_challenge/pass0'
+      outdir = '/global/cscratch1/sd/ameisner/ci_data_challenge/pass0/sims'
 
   if size(desi_tiles_row, /type) NE 8 then stop
   if n_elements(desi_tiles_row) NE 1 then stop

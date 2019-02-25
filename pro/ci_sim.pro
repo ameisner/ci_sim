@@ -96,8 +96,8 @@ function centered_psf_stamp, fwhm_pix, sidelen=sidelen
 ; demand that sidelength always be *odd* integer
 
   if ~keyword_set(sidelen) then $
-      sidelen = long(round(max(fwhm_pix)*5)) + $
-              ((long(round(max(fwhm_pix)*5)) MOD 2) EQ 0)
+      sidelen = long(round(max(fwhm_pix)*11)) + $
+              ((long(round(max(fwhm_pix)*11)) MOD 2) EQ 0)
 
   if n_elements(sidelen) NE 1 then stop
   if round(sidelen) NE sidelen then stop

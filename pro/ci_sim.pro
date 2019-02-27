@@ -357,13 +357,11 @@ end
 function sources_only_image, fwhm_pix, acttime, astr, $
                              do_gaia_sources=do_gaia_sources
 
-; for initial testing purposes, add just one 
-; moderately bright source right near the
-; middle of the exposure
-
   par = ci_par_struc()
 
   if ~keyword_set(do_gaia_sources) then begin
+      ; for initial testing purposes, add just two well-separated
+      ; moderately bright sources near the middle of the image
       cat = replicate({x: 0.0d, y: 0.0d, mag_ab: 0.0}, 2)
       cat[0].x = 1500.0d & cat[0].y = 1000.0d & cat[0].mag_ab = 17.0
       cat[1].x = 1800.0d & cat[1].y = 1200.0d & cat[1].mag_ab = 18.0
@@ -605,7 +603,7 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir
   telra = desi_tiles_row.ra
   teldec = desi_tiles_row.dec
 
-  outname = 'dci_' + string(desi_tiles_row.tileid, format='(I05)') + $
+  outname = 'dci-' + string(desi_tiles_row.tileid, format='(I05)') + $
       '.fits'
 
   outname = concat_dir(outdir, outname)

@@ -387,9 +387,18 @@ function sources_only_image, fwhm_pix, acttime, astr, $
 
       psf = shifted_psf_stamp(fwhm_pix, frac_shift, sidelen=sidelen)
 
-      flux_electrons = $
+      ; this is the total flux in (detected)
+      ; electrons of the entire source if its entire profile were to
+      ; "land" within the CI image's boundaries, and assuming
+      ; the flat field is perfectly uniform across the CCD
+
+      ; this can be different from the amount of this source's flux that
+      ; actually lands inside of the CI image's boundaries if
+      ; the source is near an edge
+
+      total_flux_electrons = $
           (10^((par.nominal_zeropoint - cat[i].mag_ab)/2.5))*acttime
-      psf = scale_psf(psf, flux_electrons)
+      psf = scale_psf(psf, total_flux_electrons)
 
       half = long(sidelen)/2
 

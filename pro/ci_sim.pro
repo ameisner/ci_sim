@@ -355,20 +355,23 @@ function _get_ci_flat, extname
 end
 
 function sources_only_image, fwhm_pix, acttime, astr, $
-                             do_gaia_sources=do_gaia_sources
+                             do_gaia_sources=do_gaia_sources, $
+                             source_catalog=cat
+
+; source_catalog keyword argument meant to be an optional output
 
   par = ci_par_struc()
 
   if ~keyword_set(do_gaia_sources) then begin
       ; for initial testing purposes, add just two well-separated
       ; moderately bright sources near the middle of the image
-      cat = replicate({x: 0.0d, y: 0.0d, mag_ab: 0.0}, 2)
+      cat = replicate({x: 0.0d, y: 0.0d, mag_ab: 0.0, extname: astr.extname}, 2)
       cat[0].x = 1500.0d & cat[0].y = 1000.0d & cat[0].mag_ab = 17.0
       cat[1].x = 1800.0d & cat[1].y = 1200.0d & cat[1].mag_ab = 18.0
   endif else begin
       cat = gaia_sources_1cam(astr)
       print, 'Adding ', n_elements(cat), ' Gaia sources'
-      addstr = replicate({mag_ab: 0.0}, n_elements(cat))
+      addstr = replicate({mag_ab: 0.0, extname: astr.extname}, n_elements(cat))
       addstr.mag_ab = cat.phot_g_mean_mag
       cat = struct_addtags(cat, addstr)
   endelse
@@ -469,10 +472,12 @@ end
 function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
                           t_celsius=t_celsius, seed=seed, $
                           fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix, $
-                          astr=astr, do_gaia_sources=do_gaia_sources
+                          astr=astr, do_gaia_sources=do_gaia_sources, $
+                          source_catalog=source_catalog
 
 ; fwhm_pix meant to be used as optional **output**
 ; sky_mag should be **mags per sq asec**
+; source catalog meant to be used as optional output
 
   if ~keyword_set(sky_mag) then sky_mag = 20.6
 ; DESI-2549, IN.CI-91010 "Assuming nominal 5 sec exposures"
@@ -515,7 +520,8 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
 
   fwhm_pix = fwhm_asec_to_pix(fwhm_asec, extname, /force_symmetric)
   im_sources_e = sources_only_image(fwhm_pix, acttime, $
-      astr, do_gaia_sources=do_gaia_sources)*flat
+      astr, do_gaia_sources=do_gaia_sources, $ 
+      source_catalog=source_catalog)*flat
 
   im_electrons += im_sources_e
 ; this isn't formally the precisely right thing to do but w/e
@@ -575,7 +581,8 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
       im = ci_sim_1extname(extname, sky_mag=_sky_mag, acttime=acttime, $
                            t_celsius=t_celsius, seed=seed, $
                            fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix,astr=astr, $
-                           do_gaia_sources=do_gaia_sources)
+                           do_gaia_sources=do_gaia_sources, $
+                           source_catalog=source_catalog)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
@@ -584,7 +591,22 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
                              astr=astr)
       print, transpose(h)
       writefits, outname, im, h, append=(~primary)
+
+; deal with the source catalog if there is one
+      if size(source_catalog, /type) EQ 8 then begin
+          if ~keyword_set(joint_catalog) then $
+              joint_catalog = source_catalog else $
+              joint_catalog = struct_append(joint_catalog, source_catalog)
+      endif
+      delvarx, source_catalog
   endfor
+
+; append one extra extension for debugging purposes only, containing
+; the full table of injected sources including all CI cameras (rather
+; than have one such extension per CI camera)
+  if size(joint_catalog, /type) EQ 8 then begin
+      mwrfits, joint_catalog, outname
+  endif
 
 end
 
@@ -593,7 +615,7 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir
 ; desi_tiles_row should be one row of the desi-tiles.fits table
 
   if ~keyword_set(outdir) then $
-      outdir = '/global/cscratch1/sd/ameisner/ci_data_challenge/sims/pass0'
+   outdir = '/project/projectdirs/desi/users/ameisner/CI/ci_data_challenge/sims'
 
   if size(desi_tiles_row, /type) NE 8 then stop
   if n_elements(desi_tiles_row) NE 1 then stop

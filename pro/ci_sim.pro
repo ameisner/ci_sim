@@ -422,6 +422,13 @@ function sources_only_image, fwhm_pix, acttime, astr, $
 
   delvarx, sidelen
 
+  total_flux_adu = total_flux_electrons/get_gain(astr.extname)
+
+  addstr = replicate({total_flux_adu_flatfielded: 0.0}, n_elements(cat))
+  addstr.total_flux_adu_flatfielded = total_flux_adu
+
+  cat = struct_addtags(cat, addstr)
+
   return, im_electrons
 end
 

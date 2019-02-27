@@ -553,7 +553,7 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
   im_adu = im_electrons/gain
 
 ; convert the image to the right type of integer
-  im_adu = uint(round(im_adu)) ; round to avoid biasing low
+  im_adu = uint(round(im_adu) < 65535) ; round to avoid biasing low
 
   return, im_adu
 end

@@ -622,7 +622,9 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
 ; the full table of injected sources including all CI cameras (rather
 ; than have one such extension per CI camera)
   if size(joint_catalog, /type) EQ 8 then begin
-      mwrfits, joint_catalog, outname
+      outname_cat = repstr(outname, '.fits', '.cat.fits')
+      if file_test(outname_cat) then stop
+      mwrfits, joint_catalog, outname_cat
   endif
 
 end

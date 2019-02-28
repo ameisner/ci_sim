@@ -71,6 +71,55 @@ function ci_bdy_coords
   return, outstr
 end
 
+pro distance_to_neighbor_source, cat, astr
+
+; want to have a metric related to isolation of the injected sources
+; so that downstream tests can conveniently ignore blends when 
+; that is appropriate/useful
+
+; calculate distance to nearest neighbor in asec and append that
+; as a column in input cat (which thus gets modified)
+
+  if size(cat, /type) NE 8 then stop
+  if size(astr, /type) NE 8 then stop
+
+  xy2ad, cat.x, cat.y, astr, ra, dec
+
+  ang_max = 1.0d/60.0d ; deg (this is 1 arcmin)
+  spherematch, ra, dec, ra, dec, ang_max, m, _m, dist, maxmatch=0
+
+  w = where(m NE _m, nw) ; don't care about self-matches
+
+  if nw EQ 0 then stop ; ??
+
+  m = m[w]
+  _m = _m[w]
+  dist = dist[w]
+
+  sind = sort(m)
+
+  m = m[sind]
+  _m = _m[sind]
+  dist = dist[sind]
+
+  ind_bdy = uniq(m)
+
+  n_bdy = n_elements(ind_bdy)
+
+; -1.0 will be dummy value indicating no neighbors
+  d_nearest_asec = fltarr(n_elements(cat)) - 1.0
+  for i=0L, n_bdy-1 do begin
+      ind_l = (i EQ 0) ? 0 : (ind_bdy[i-1] + 1)
+      ind_u = ind_bdy[i]
+      d_nearest_asec[m[ind_bdy[i]]] = min(dist[ind_l:ind_u])*3600.0
+  endfor
+
+  addstr = replicate({nearest_neighbor_asec: 0.0}, n_elements(cat))
+  addstr.nearest_neighbor_asec = d_nearest_asec
+  cat = struct_addtags(cat, addstr)
+
+end
+
 function psf_stamp_size
 
 ; as a function of how bright a source is, return the 

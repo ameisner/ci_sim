@@ -478,6 +478,9 @@ function sources_only_image, fwhm_pix, acttime, astr, $
 
   cat = struct_addtags(cat, addstr)
 
+; add extra column to catalog with distance to its nearest neighbor
+  distance_to_neighbor_source, cat, astr
+
   return, im_electrons
 end
 

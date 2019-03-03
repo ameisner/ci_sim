@@ -2,7 +2,8 @@ pro _cache_nominal_astrometry
 
   COMMON _CI_ASTROM, astrom
   if n_elements(astrom) EQ 0 then begin
-      fname = '../etc/viewer_astrom_index-as_designed.bigtan.fits'
+      fname = concat_dir(getenv('CI_REDUCE_ETC'), $
+          'viewer_astrom_index-as_designed.bigtan.fits')
       astrom = mrdfits(fname, 1)
   end
 

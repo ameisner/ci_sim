@@ -72,6 +72,10 @@ function ci_bdy_coords
   return, outstr
 end
 
+function _wrap_ra, ra
+  return, ra + (360.0d)*(ra LT 0)
+end
+
 pro distance_to_neighbor_source, cat, astr
 
 ; want to have a metric related to isolation of the injected sources
@@ -87,7 +91,8 @@ pro distance_to_neighbor_source, cat, astr
   xy2ad, cat.x, cat.y, astr, ra, dec
 
   ang_max = 1.0d/60.0d ; deg (this is 1 arcmin)
-  spherematch, ra, dec, ra, dec, ang_max, m, _m, dist, maxmatch=0
+  spherematch, _wrap_ra(ra), dec, _wrap_ra(ra), dec, ang_max, m, _m, dist, $
+      maxmatch=0
 
   w = where(m NE _m, nw) ; don't care about self-matches
 

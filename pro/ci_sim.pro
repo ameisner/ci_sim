@@ -96,7 +96,11 @@ pro distance_to_neighbor_source, cat, astr
 
   w = where(m NE _m, nw) ; don't care about self-matches
 
-  if nw EQ 0 then stop ; ??
+  if nw EQ 0 then begin
+      addstr = replicate({nearest_neighbor_asec: -1.0}, n_elements(cat))
+      cat = struct_addtags(cat, addstr)
+      return
+  endif
 
   m = m[w]
   _m = _m[w]

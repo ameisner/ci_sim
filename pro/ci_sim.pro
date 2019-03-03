@@ -756,3 +756,19 @@ pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir
   endfor
 
 end
+
+pro desi_1pointing, tileid, outdir=outdir
+
+; alternative wrapper for sim_desi_pointing
+
+  if n_elements(tileid) NE 1 then stop
+
+  _cache_desi_tiles
+  COMMON _DESI_TILES, all_tiles
+
+  w = where(all_tiles.tileid EQ tileid, nw)
+  if (nw NE 1) then stop
+
+  sim_desi_pointing, all_tiles[w[0]], outdir=outdir
+
+end

@@ -306,6 +306,21 @@ function get_readnoise_electrons, extname
 
 end
 
+function ci_min_edge_dist, cat
+
+  par = ci_par_struc()
+
+  min_edge_dist = 10000L
+
+  min_edge_dist <= (cat.x+0.5)
+  min_edge_dist <= (cat.y+0.5)
+  min_edge_dist <= (par.width - 0.5 - cat.x)
+  min_edge_dist <= (par.height - 0.5 - cat.y)
+
+  return, min_edge_dist
+
+end
+
 pro check_valid_extname, extname
 
   if n_elements(extname) NE 1 then stop
@@ -473,8 +488,10 @@ function sources_only_image, fwhm_pix, acttime, astr, $
 
   total_flux_adu = total_flux_electrons/get_gain(astr.extname)
 
-  addstr = replicate({total_flux_adu_flatfielded: 0.0}, n_elements(cat))
+  addstr = replicate({total_flux_adu_flatfielded: 0.0, $
+                      min_edge_dist: 0.0}, n_elements(cat))
   addstr.total_flux_adu_flatfielded = total_flux_adu
+  addstr.min_edge_dist = ci_min_edge_dist(cat)
 
   cat = struct_addtags(cat, addstr)
 

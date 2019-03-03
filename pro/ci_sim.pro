@@ -752,6 +752,12 @@ pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir
   desi_tiles_pass0 = all_tiles[where((all_tiles.pass EQ 0) AND $
                                       all_tiles.in_desi, n_sim)]
 
+; randomize ordering of pass=0 tiles
+  seed = 99L
+  sind = sort(randomu(seed, n_sim))
+
+  desi_tiles_pass0 = desi_tiles_pass0[sind]
+
   if ~keyword_set(indstart) then indstart = 0L
   if ~keyword_set(nproc) then nproc = n_sim
 

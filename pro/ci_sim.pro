@@ -274,11 +274,11 @@ function get_gain, extname
   check_valid_extname, extname
 
   case extname of
-      'CIW': gain = 1.64
-      'CIS': gain = 1.65
+      'CIE': gain = 1.64
+      'CIN': gain = 1.65
       'CIC': gain = 1.64
-      'CIN': gain = 1.61
-      'CIE': gain = 1.67
+      'CIS': gain = 1.61
+      'CIW': gain = 1.67
   endcase
 
   return, gain
@@ -305,11 +305,11 @@ function get_readnoise_electrons, extname
   check_valid_extname, extname
 
   case extname of
-      'CIW': readnoise = 12.8
-      'CIS': readnoise = 13.3
+      'CIE': readnoise = 12.8
+      'CIN': readnoise = 13.3
       'CIC': readnoise = 13.7
-      'CIN': readnoise = 13.2
-      'CIE': readnoise = 14.2
+      'CIS': readnoise = 13.2
+      'CIW': readnoise = 14.2
   endcase
 
   return, readnoise

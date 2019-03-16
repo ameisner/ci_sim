@@ -848,7 +848,7 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext, $
 
   if ~keyword_set(expnum) then expnum = desi_tiles_row.tileid
 
-  outname = 'dci-' + string(expnum, format='(I06)') + '.fits'
+  outname = 'desi-' + string(expnum, format='(I06)') + '.fits'
 
   outname = concat_dir(outdir, outname)
 

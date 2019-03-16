@@ -130,6 +130,55 @@ pro distance_to_neighbor_source, cat, astr
 
 end
 
+function mjd_lst_lookup_table
+
+; 07:00 UTC on 1 Jan 2019
+  mjd0 = 58484.29166667d
+  mjds = mjd0 + dindgen(365)
+
+  jds = mjds + 2400000.5d
+
+  longitude = -111.59989d ; KPNO deg E copied from DESI-4000
+  timezone = -7 ; KPNO
+
+  lsts = dblarr(n_elements(jds))
+  for i=0L, n_elements(jds)-1 do begin
+      ct2lst, lst, longitude, timezone, jds[i]
+      lsts[i] = lst ; what are the units of lst returned ???
+  endfor
+
+  outstr = replicate({mjd: 0.0d, jd: 0.0d, lst: 0.0d}, n_elements(jds))
+  outstr.mjd = mjds
+  outstr.jd = jds
+  outstr.lst = lsts*15.0d ; put LST in degrees rather than hours
+
+  return, outstr
+end
+
+pro _cache_lst
+
+  COMMON LST_LOOKUP, lst_str
+  if n_elements(lst_str) EQ 0 then begin
+      lst_str = mjd_lst_lookup_table()
+  endif
+
+end
+
+function ra_to_mjd, ra, lst=lst
+
+  if n_elements(ra) NE 1 then stop
+
+  _cache_lst
+  COMMON LST_LOOKUP, lst_str
+  _ra = _wrap_ra(ra)
+
+  _ = min(abs(lst_str.lst - _ra), indmin)
+
+  lst = lst_str[indmin].lst ; optional output
+
+  return, lst_str[indmin].mjd
+end
+
 function psf_stamp_size
 
 ; as a function of how bright a source is, return the 
@@ -215,7 +264,7 @@ pro _mwr_dummy, fname, exptime=exptime, ra=ra, dec=dec
     fxaddpar, header, 'SKYDEC', dec, $
         '[deg] Telescope declination (pointing on sky)'
 
-    COMMON _ci_frame_info, _tileid, _pass, _expid
+    COMMON _ci_frame_info, _tileid, _pass, _expid, _time_specific
     
     if n_elements(_tileid) EQ 1 then $
         fxaddpar, header, 'TILEID', _tileid
@@ -225,6 +274,23 @@ pro _mwr_dummy, fname, exptime=exptime, ra=ra, dec=dec
 
     if n_elements(_expid) EQ 1 then $
         fxaddpar, header, 'EXPID', _expid, 'Exposure number'
+
+    if n_elements(_time_specific) NE 0 then begin
+        fxaddpar, header, 'MJD-OBS', _time_specific.mjd, $
+            'Modified Julian Date of observation'
+        fxaddpar, header, 'AIRMASS', _time_specific.airmass, $
+            'Airmass'
+        fxaddpar, header, 'NIGHT', _time_specific.night, $
+            'Observing night'
+        fxaddpar, header, 'DATE-OBS', _time_specific.date_obs, $
+            '[UTC] Observation date start time'
+        fxaddpar, header, 'MOONRA', _time_specific.moonra, $
+            '[deg] Moon RA at start of exposure'
+        fxaddpar, header, 'MOONDEC', _time_specific.moondec, $
+            '[deg] Moon declination at start of exposure'
+        fxaddpar, header, 'MOONANGL', _time_specific.moon_dist_deg, $
+            '[deg] Distance to moon at start of exposure'
+    endif
 
     mwr_header, 2, header
 
@@ -861,13 +927,42 @@ pro _cache_ci_tiles
 
 end
 
-pro _cache_ci_frame_info, tileid, pass
+pro _cache_ci_frame_info, tileid, pass, time_specific
 
-  COMMON _CI_FRAME_INFO, _tileid, _pass, _expid
+  COMMON _CI_FRAME_INFO, _tileid, _pass, _expid, _time_specific
   if n_elements(tileid) NE 0 then _tileid = tileid
   if n_elements(pass) NE 0 then _pass = pass
   if n_elements(tileid) NE 0 then _expid = tileid + 50000L ; HACK
+  if n_elements(time_specific) NE 0 then _time_specific = time_specific
 
+end
+
+function time_specific_metadata, ra, dec
+
+  mjd = ra_to_mjd(ra, lst=lst)
+
+  kpno_lat = 31.96403d
+  z = djs_diff_angle(ra, dec, lst, kpno_lat)
+
+  airmass = 1/cos(z/(180.0d/!dpi))
+
+  if (airmass LT 1) then stop
+
+  date_string = strmid(date_conv(mjd +  2400000.5d, 'FITS'), 0, 10)
+
+; subtract half a day to figure out what "night" this MJD belongs to
+  night_string = strmid(date_conv(mjd + 2400000.5d - 0.5d, 'FITS'), 0, 10)
+
+; ra_moon, dec_moon are in degrees
+  moonpos, mjd + 2400000.5d, ra_moon, dec_moon
+
+  moon_dist = djs_diff_angle(ra_moon, dec_moon, ra, dec)
+
+  outstr = {mjd: mjd, airmass: airmass, date_obs: date_string, $
+            night: night_string, moonra: ra_moon, moondec: dec_moon, $
+            moon_dist_deg: moon_dist}
+
+  return, outstr
 end
 
 ; use 47002 as a test case
@@ -886,7 +981,8 @@ pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric
   w = where(ci_tiles.tileid EQ tileid, nw)
   if (nw NE 1) then stop
 
-  _cache_ci_frame_info, ci_tiles[w[0]].tileid, ci_tiles[w[0]].pass
+  _cache_ci_frame_info, ci_tiles[w[0]].tileid, ci_tiles[w[0]].pass, $
+      time_specific_metadata(ci_tiles[w[0]].ra, ci_tiles[w[0]].dec)
 
   sim_desi_pointing, ci_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
       force_symmetric=force_symmetric

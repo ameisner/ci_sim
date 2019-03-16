@@ -987,5 +987,21 @@ pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric
   sim_desi_pointing, ci_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
       force_symmetric=force_symmetric
 
+end
+
+pro ci_pointings, indstart, nproc
+
+  _cache_ci_tiles
+  COMMON _CI_TILES, ci_tiles
+
+  ci_tiles = ci_tiles[where(ci_tiles.in_desi)]
+
+  ntiles = n_elements(ci_tiles)
+
+  indend = (indstart + nproc - 1) < (ntiles - 1)
+
+  for i=indstart, indend do begin
+      ci_1pointing, ci_tiles[i].tileid
+  endfor
 
 end

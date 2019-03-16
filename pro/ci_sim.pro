@@ -183,7 +183,7 @@ function shifted_psf_stamp, fwhm_pix, frac_shift, sidelen=sidelen
 
 end
 
-pro _mwr_dummy, fname
+pro _mwr_dummy, fname, exptime=exptime, ra=ra, dec=dec
 
     openw, 2, fname, /swap_if_little
 
@@ -193,6 +193,24 @@ pro _mwr_dummy, fname
     fxaddpar, header, 'BITPIX', 16, 'Dummy primary header created by MWRFITS'
     fxaddpar, header, 'NAXIS', 0, 'No data is associated with this header'
     fxaddpar, header, 'EXTEND', 'T', 'Extensions may be present'
+
+    fxaddpar, header, 'EXTNAME', 'CI'
+    fxaddpar, header, 'OBSERVAT', 'KPNO', 'Observatory name'
+    fxaddpar, header, 'OBS-LAT', 31.96403, '[deg] Observatory latitude'
+    fxaddpar, header, 'OBS-LONG', -111.59989, '[deg] Observatory east longitude'
+
+    fxaddpar, header, 'OBS-ELEV', 2097, '[m] Observatory elevation'
+    fxaddpar, header, 'TELESCOP', 'KPNO 4.0m telescope', 'Telescope name'
+    fxaddpar, header, 'INSTRUME', 'CI', 'Instrument name'
+
+    if arg_present(exptime) then $
+    fxaddpar, header, 'EXPTIME', exptime, '[s] Actual exposure time'
+
+    if arg_present(ra) then $
+    fxaddpar, header, 'SKYRA', ra, $
+        '[deg] Telescope right ascension (pointing on sky)'
+    fxaddpar, header, 'SKYDEC', dec, $
+        '[deg] Telescope declination (pointing on sky)'
 
     mwr_header, 2, header
 
@@ -686,7 +704,8 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
 
   sky_mag_array = (n_elements(sky_mag) EQ n_elements(par.ci_extnames))
 
-  if keyword_set(dummy_ext) then _mwr_dummy, outname
+  if keyword_set(dummy_ext) then _mwr_dummy, outname, exptime=acttime, $
+      ra=telra, dec=teldec
 
   for i=0L, n_elements(par.ci_extnames)-1 do begin
       extname = (par.ci_extnames)[i]

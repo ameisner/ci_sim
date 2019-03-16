@@ -629,7 +629,7 @@ end
 function ci_header_1extname, extname, im, acttime, t_celsius, $
                              primary=primary, sky_mag=sky_mag, seed=seed, $
                              telra=telra, teldec=teldec, fwhm_pix=fwhm_pix, $
-                             astr=astr
+                             astr=astr, fwhm_asec=fwhm_asec
 
 ; make astr a required argument rather than an optional keyword argument?
 
@@ -673,6 +673,10 @@ function ci_header_1extname, extname, im, acttime, t_celsius, $
   if keyword_set(fwhm_pix) then begin
       sxaddpar, header, 'FWHMPX', fwhm_pix[0], 'x FWHM in pixels'
       sxaddpar, header, 'FWHMPY', fwhm_pix[1], 'y FWHM in pixels'
+  endif
+
+  if keyword_set(fwhm_asec) then begin
+      sxaddpar, header, 'FWHMASEC', fwhm_asec, 'FWHM in asec'
   endif
 
   sxdelpar, header, 'HISTORY'
@@ -806,7 +810,7 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
                              primary=primary, sky_mag=_sky_mag, seed=_seed, $
                              telra=telra, teldec=teldec, fwhm_pix=fwhm_pix, $
-                             astr=astr)
+                             astr=astr, fwhm_asec=fwhm_asec)
       print, transpose(h)
       writefits, outname, im, h, append=(~primary OR keyword_set(dummy_ext))
 

@@ -203,6 +203,9 @@ pro _mwr_dummy, fname, exptime=exptime, ra=ra, dec=dec
     fxaddpar, header, 'TELESCOP', 'KPNO 4.0m telescope', 'Telescope name'
     fxaddpar, header, 'INSTRUME', 'CI', 'Instrument name'
 
+    fxaddpar, header, 'PROGRAM', 'commiss', 'Program name'
+    fxaddpar, header, 'FLAVOR', 'science', 'Observation type'
+
     if arg_present(exptime) then $
     fxaddpar, header, 'EXPTIME', exptime, '[s] Actual exposure time'
 
@@ -211,6 +214,17 @@ pro _mwr_dummy, fname, exptime=exptime, ra=ra, dec=dec
         '[deg] Telescope right ascension (pointing on sky)'
     fxaddpar, header, 'SKYDEC', dec, $
         '[deg] Telescope declination (pointing on sky)'
+
+    COMMON _ci_frame_info, _tileid, _pass, _expid
+    
+    if n_elements(_tileid) EQ 1 then $
+        fxaddpar, header, 'TILEID', _tileid
+
+    if n_elements(_pass) EQ 1 then $
+        fxaddpar, header, 'PASS', _pass
+
+    if n_elements(_expid) EQ 1 then $
+        fxaddpar, header, 'EXPID', _expid, 'Exposure number'
 
     mwr_header, 2, header
 
@@ -833,5 +847,49 @@ pro desi_1pointing, tileid, outdir=outdir, dummy_ext=dummy_ext, $
 
   sim_desi_pointing, all_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
       force_symmetric=force_symmetric
+
+end
+
+pro _cache_ci_tiles
+
+  COMMON _CI_TILES, ci_tiles
+  if n_elements(ci_tiles) EQ 0 then begin
+      ; when this becomes more finalized put a copy in CI_REDUCE_ETC
+      fname = '/project/projectdirs/desi/cmx/ci/tiles/v1/ci-tiles-v1.fits'
+      ci_tiles = mrdfits(fname, 1)
+  endif
+
+end
+
+pro _cache_ci_frame_info, tileid, pass
+
+  COMMON _CI_FRAME_INFO, _tileid, _pass, _expid
+  if n_elements(tileid) NE 0 then _tileid = tileid
+  if n_elements(pass) NE 0 then _pass = pass
+  if n_elements(tileid) NE 0 then _expid = tileid + 50000L ; HACK
+
+end
+
+; use 47002 as a test case
+; .COM mwrfits
+pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric
+
+  if ~keyword_set(outdir) then outdir = '$SCRATCH/sims'
+
+  dummy_ext = 1 ; HARDCODED !
+
+  if n_elements(tileid) NE 1 then stop
+
+  _cache_ci_tiles
+  COMMON _CI_TILES, ci_tiles
+
+  w = where(ci_tiles.tileid EQ tileid, nw)
+  if (nw NE 1) then stop
+
+  _cache_ci_frame_info, ci_tiles[w[0]].tileid, ci_tiles[w[0]].pass
+
+  sim_desi_pointing, ci_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
+      force_symmetric=force_symmetric
+
 
 end

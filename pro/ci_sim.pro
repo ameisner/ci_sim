@@ -831,7 +831,7 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
 end
 
 pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext, $
-                       force_symmetric=force_symmetric
+                       force_symmetric=force_symmetric, expnum=expnum
 
 ; desi_tiles_row should be one row of the desi-tiles.fits table
 
@@ -846,8 +846,9 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext, $
   telra = desi_tiles_row.ra
   teldec = desi_tiles_row.dec
 
-  outname = 'dci-' + string(desi_tiles_row.tileid, format='(I05)') + $
-      '.fits'
+  if ~keyword_set(expnum) then expnum = desi_tiles_row.tileid
+
+  outname = 'dci-' + string(expnum, format='(I06)') + '.fits'
 
   outname = concat_dir(outdir, outname)
 
@@ -984,11 +985,14 @@ pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric
   _cache_ci_frame_info, ci_tiles[w[0]].tileid, ci_tiles[w[0]].pass, $
       time_specific_metadata(ci_tiles[w[0]].ra, ci_tiles[w[0]].dec)
 
+  COMMON _CI_FRAME_INFO, _tileid, _pass, _expid, _time_specific
+
   sim_desi_pointing, ci_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
-      force_symmetric=force_symmetric
+      force_symmetric=force_symmetric, expnum=_expid
 
 end
 
+; .COM mwrfits
 pro ci_pointings, indstart, nproc
 
   _cache_ci_tiles

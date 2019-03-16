@@ -586,7 +586,8 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
                           t_celsius=t_celsius, seed=seed, $
                           fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix, $
                           astr=astr, do_gaia_sources=do_gaia_sources, $
-                          source_catalog=source_catalog
+                          source_catalog=source_catalog, $
+                          force_symmetric=force_symmetric
 
 ; fwhm_pix meant to be used as optional **output**
 ; sky_mag should be **mags per sq asec**
@@ -631,7 +632,8 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
 
   im_electrons += total_dark_current_e
 
-  fwhm_pix = fwhm_asec_to_pix(fwhm_asec, extname, /force_symmetric)
+  fwhm_pix = fwhm_asec_to_pix(fwhm_asec, extname, $
+      force_symmetric=force_symmetric)
   im_sources_e = sources_only_image(fwhm_pix, acttime, $
       astr, do_gaia_sources=do_gaia_sources, $ 
       source_catalog=source_catalog)*flat
@@ -657,7 +659,7 @@ end
 pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
             acttime=acttime, t_celsius=t_celsius, seed=seed, $
             fwhm_asec=fwhm_asec, do_gaia_sources=do_gaia_sources, $
-            dummy_ext=dummy_ext
+            dummy_ext=dummy_ext, force_symmetric=force_symmetric
 
 ; sky_mag should be **mags per sq asec**
 
@@ -698,7 +700,8 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
                            t_celsius=t_celsius, seed=seed, $
                            fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix,astr=astr, $
                            do_gaia_sources=do_gaia_sources, $
-                           source_catalog=source_catalog)
+                           source_catalog=source_catalog, $
+                           force_symmetric=force_symmetric)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
@@ -728,7 +731,8 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
 
 end
 
-pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext
+pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext, $
+                       force_symmetric=force_symmetric
 
 ; desi_tiles_row should be one row of the desi-tiles.fits table
 
@@ -758,12 +762,13 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext
   seed = long(desi_tiles_row.tileid)
   ci_sim, outname, telra=desi_tiles_row.ra, teldec=desi_tiles_row.dec, $
       sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, seed=seed, $
-      fwhm_asec=fwhm_asec, /do_gaia_sources, dummy_ext=dummy_ext
+      fwhm_asec=fwhm_asec, /do_gaia_sources, dummy_ext=dummy_ext, $
+      force_symmetric=force_symmetric
 
 end
 
 pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir, $
-                        dummy_ext=dummy_ext
+                        dummy_ext=dummy_ext, force_symmetric=force_symmetric
 
 ; wrapper for sim_desi_pointing
 
@@ -789,12 +794,13 @@ pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir, $
 
   for i=indstart, indend do begin
       sim_desi_pointing, desi_tiles_pass0[i], outdir=outdir, $
-          dummy_ext=dummy_ext
+          dummy_ext=dummy_ext, force_symmetric=force_symmetric
   endfor
 
 end
 
-pro desi_1pointing, tileid, outdir=outdir
+pro desi_1pointing, tileid, outdir=outdir, dummy_ext=dummy_ext, $
+                    force_symmetric=force_symmetric
 
 ; alternative wrapper for sim_desi_pointing
 
@@ -806,6 +812,7 @@ pro desi_1pointing, tileid, outdir=outdir
   w = where(all_tiles.tileid EQ tileid, nw)
   if (nw NE 1) then stop
 
-  sim_desi_pointing, all_tiles[w[0]], outdir=outdir
+  sim_desi_pointing, all_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
+      force_symmetric=force_symmetric
 
 end

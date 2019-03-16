@@ -183,6 +183,23 @@ function shifted_psf_stamp, fwhm_pix, frac_shift, sidelen=sidelen
 
 end
 
+pro _mwr_dummy, fname
+
+    openw, 2, fname, /swap_if_little
+
+    compile_opt idl2,hidden
+
+    fxaddpar, header, 'SIMPLE', 'T','Dummy Created by MWRFITS'
+    fxaddpar, header, 'BITPIX', 16, 'Dummy primary header created by MWRFITS'
+    fxaddpar, header, 'NAXIS', 0, 'No data is associated with this header'
+    fxaddpar, header, 'EXTEND', 'T', 'Extensions may be present'
+
+    mwr_header, 2, header
+
+    close, 2
+
+end
+
 function fwhm_asec_to_pix, fwhm_asec, extname, force_symmetric=force_symmetric
 
 ; force_symmetric is optional boolean argument meant to allow
@@ -530,7 +547,7 @@ function ci_header_1extname, extname, im, acttime, t_celsius, $
 
   sxaddpar, header, 'EXTNAME', extname, 'Extension name' ; CI camera name
   sxaddpar, header, 'CAMTEMP', t_celsius, '[deg] Camera temperature' ; Celsius
-  sxaddpar, header, 'ACTTIME', acttime, '[s] Actual exposure time'
+  sxaddpar, header, 'EXPTIME', acttime, '[s] Actual exposure time'
   sxaddpar, header, 'REQRA', telra, $
       '[deg] Requested right ascension (observer input)'
   sxaddpar, header, 'REQDEC', teldec, $
@@ -639,7 +656,8 @@ end
 
 pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
             acttime=acttime, t_celsius=t_celsius, seed=seed, $
-            fwhm_asec=fwhm_asec, do_gaia_sources=do_gaia_sources
+            fwhm_asec=fwhm_asec, do_gaia_sources=do_gaia_sources, $
+            dummy_ext=dummy_ext
 
 ; sky_mag should be **mags per sq asec**
 
@@ -666,6 +684,8 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
 
   sky_mag_array = (n_elements(sky_mag) EQ n_elements(par.ci_extnames))
 
+  if keyword_set(dummy_ext) then _mwr_dummy, outname
+
   for i=0L, n_elements(par.ci_extnames)-1 do begin
       extname = (par.ci_extnames)[i]
       print, 'Working on ' + extname
@@ -686,7 +706,7 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
                              telra=telra, teldec=teldec, fwhm_pix=fwhm_pix, $
                              astr=astr)
       print, transpose(h)
-      writefits, outname, im, h, append=(~primary)
+      writefits, outname, im, h, append=(~primary OR keyword_set(dummy_ext))
 
 ; deal with the source catalog if there is one
       if size(source_catalog, /type) EQ 8 then begin
@@ -708,7 +728,7 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
 
 end
 
-pro sim_desi_pointing, desi_tiles_row, outdir=outdir
+pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext
 
 ; desi_tiles_row should be one row of the desi-tiles.fits table
 
@@ -738,11 +758,12 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir
   seed = long(desi_tiles_row.tileid)
   ci_sim, outname, telra=desi_tiles_row.ra, teldec=desi_tiles_row.dec, $
       sky_mag=sky_mag, acttime=acttime, t_celsius=t_celsius, seed=seed, $
-      fwhm_asec=fwhm_asec, /do_gaia_sources
+      fwhm_asec=fwhm_asec, /do_gaia_sources, dummy_ext=dummy_ext
 
 end
 
-pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir
+pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir, $
+                        dummy_ext=dummy_ext
 
 ; wrapper for sim_desi_pointing
 
@@ -767,7 +788,8 @@ pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir
   indend = (indstart + nproc - 1) < (n_sim - 1)
 
   for i=indstart, indend do begin
-      sim_desi_pointing, desi_tiles_pass0[i], outdir=outdir
+      sim_desi_pointing, desi_tiles_pass0[i], outdir=outdir, $
+          dummy_ext=dummy_ext
   endfor
 
 end

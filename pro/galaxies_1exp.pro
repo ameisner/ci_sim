@@ -12,8 +12,8 @@ pro _cache_leda
       mag = (((leda.bmag NE -999)*leda.bmag + $
               (leda.imag NE -999)*leda.imag))/((leda.bmag NE -999) + $
                                                (leda.imag NE -999))
-      addstr = replicate({mag: 0.0}, n_elements(mag))
-      addstr.mag = mag
+      addstr = replicate({mag_ab: 0.0}, n_elements(mag))
+      addstr.mag_ab = mag
       leda = struct_addtags(leda, addstr)
   end
 

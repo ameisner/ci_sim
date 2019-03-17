@@ -545,12 +545,13 @@ end
 
 function sources_only_image, fwhm_pix, acttime, astr, $
                              do_gaia_sources=do_gaia_sources, $
-                             source_catalog=cat
+                             source_catalog=cat, galaxy_catalog=galaxy_catalog
 
 ; source_catalog keyword argument meant to be an optional output
 
   par = ci_par_struc()
 
+if ~keyword_set(galaxy_catalog) then begin
   if ~keyword_set(do_gaia_sources) then begin
       ; for initial testing purposes, add just two well-separated
       ; moderately bright sources near the middle of the image
@@ -564,6 +565,10 @@ function sources_only_image, fwhm_pix, acttime, astr, $
       addstr.mag_ab = cat.phot_g_mean_mag
       cat = struct_addtags(cat, addstr)
   endelse
+endif else begin
+  cat = galaxy_catalog
+endelse
+
 ; construct this image in units of electrons !!!
 
   im_electrons = fltarr(par.width, par.height)
@@ -586,7 +591,11 @@ function sources_only_image, fwhm_pix, acttime, astr, $
 
       frac_shift = [cat[i].x-ix, cat[i].y-iy]
 
-      psf = shifted_psf_stamp(fwhm_pix, frac_shift, sidelen=sidelen)
+      if ~keyword_set(galaxy_catalog) then begin
+          psf = shifted_psf_stamp(fwhm_pix, frac_shift, sidelen=sidelen)
+      endif else begin
+          psf = shifted_galaxy_stamp(cat[i], astr, sidelen=sidelen)
+      endelse
 
       psf = scale_psf(psf, total_flux_electrons[i])
 
@@ -743,7 +752,12 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
       source_catalog=source_catalog)*flat
 
   galaxy_catalog = galaxies_1cam(astr)
-help,galaxy_catalog
+
+  if size(galaxy_catalog, /type) EQ 8 then begin
+      galaxy_sources_e = sources_only_image(fwhm_pix, acttime, $
+          astr, galaxy_catalog=galaxy_catalog)*flat
+      im_sources_e += galaxy_sources_e
+  endif
 
   im_electrons += im_sources_e
 ; this isn't formally the precisely right thing to do but w/e
@@ -849,7 +863,8 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
 end
 
 pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext, $
-                       force_symmetric=force_symmetric, expnum=expnum
+                       force_symmetric=force_symmetric, expnum=expnum, $
+                       acttime=acttime
 
 ; desi_tiles_row should be one row of the desi-tiles.fits table
 
@@ -886,7 +901,8 @@ pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext, $
 end
 
 pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir, $
-                        dummy_ext=dummy_ext, force_symmetric=force_symmetric
+                        dummy_ext=dummy_ext, force_symmetric=force_symmetric, $
+                        acttime=acttime
 
 ; wrapper for sim_desi_pointing
 
@@ -912,13 +928,14 @@ pro sim_desi_pointings, indstart=indstart, nproc=nproc, outdir=outdir, $
 
   for i=indstart, indend do begin
       sim_desi_pointing, desi_tiles_pass0[i], outdir=outdir, $
-          dummy_ext=dummy_ext, force_symmetric=force_symmetric
+          dummy_ext=dummy_ext, force_symmetric=force_symmetric, $
+          acttime=acttime
   endfor
 
 end
 
 pro desi_1pointing, tileid, outdir=outdir, dummy_ext=dummy_ext, $
-                    force_symmetric=force_symmetric
+                    force_symmetric=force_symmetric, acttime=acttime
 
 ; alternative wrapper for sim_desi_pointing
 
@@ -931,7 +948,7 @@ pro desi_1pointing, tileid, outdir=outdir, dummy_ext=dummy_ext, $
   if (nw NE 1) then stop
 
   sim_desi_pointing, all_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
-      force_symmetric=force_symmetric
+      force_symmetric=force_symmetric, acttime=acttime
 
 end
 
@@ -986,7 +1003,8 @@ end
 
 ; use 47002 as a test case
 ; .COM mwrfits
-pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric
+pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric, $
+                  acttime=acttime
 
   if ~keyword_set(outdir) then outdir = '$SCRATCH/sims'
 
@@ -1006,12 +1024,12 @@ pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric
   COMMON _CI_FRAME_INFO, _tileid, _pass, _expid, _time_specific
 
   sim_desi_pointing, ci_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
-      force_symmetric=force_symmetric, expnum=_expid
+      force_symmetric=force_symmetric, expnum=_expid, acttime=acttime
 
 end
 
 ; .COM mwrfits
-pro ci_pointings, indstart, nproc
+pro ci_pointings, indstart, nproc, acttime=acttime
 
   _cache_ci_tiles
   COMMON _CI_TILES, ci_tiles
@@ -1026,7 +1044,7 @@ pro ci_pointings, indstart, nproc
   indend = (indstart + nproc - 1) < (ntiles - 1)
 
   for i=indstart, indend do begin
-      ci_1pointing, ci_tiles[i].tileid
+      ci_1pointing, ci_tiles[i].tileid, acttime=acttime
   endfor
 
 end

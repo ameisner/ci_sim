@@ -864,7 +864,7 @@ end
 
 pro sim_desi_pointing, desi_tiles_row, outdir=outdir, dummy_ext=dummy_ext, $
                        force_symmetric=force_symmetric, expnum=expnum, $
-                       acttime=acttime
+                       acttime=acttime, sky_mag=sky_mag
 
 ; desi_tiles_row should be one row of the desi-tiles.fits table
 
@@ -1004,7 +1004,7 @@ end
 ; use 47002 as a test case
 ; .COM mwrfits
 pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric, $
-                  acttime=acttime
+                  acttime=acttime, sky_mag=sky_mag
 
   if ~keyword_set(outdir) then outdir = '$SCRATCH/sims'
 
@@ -1024,12 +1024,13 @@ pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric, $
   COMMON _CI_FRAME_INFO, _tileid, _pass, _expid, _time_specific
 
   sim_desi_pointing, ci_tiles[w[0]], outdir=outdir, dummy_ext=dummy_ext, $
-      force_symmetric=force_symmetric, expnum=_expid, acttime=acttime
+      force_symmetric=force_symmetric, expnum=_expid, acttime=acttime, $
+      sky_mag=sky_mag
 
 end
 
 ; .COM mwrfits
-pro ci_pointings, indstart, nproc, acttime=acttime
+pro ci_pointings, indstart, nproc, acttime=acttime, sky_mag=sky_mag
 
   _cache_ci_tiles
   COMMON _CI_TILES, ci_tiles
@@ -1044,7 +1045,7 @@ pro ci_pointings, indstart, nproc, acttime=acttime
   indend = (indstart + nproc - 1) < (ntiles - 1)
 
   for i=indstart, indend do begin
-      ci_1pointing, ci_tiles[i].tileid, acttime=acttime
+      ci_1pointing, ci_tiles[i].tileid, acttime=acttime, sky_mag=sky_mag
   endfor
 
 end

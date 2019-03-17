@@ -689,11 +689,13 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
                           fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix, $
                           astr=astr, do_gaia_sources=do_gaia_sources, $
                           source_catalog=source_catalog, $
-                          force_symmetric=force_symmetric
+                          force_symmetric=force_symmetric, $
+                          galaxy_catalog=galaxy_catalog
 
 ; fwhm_pix meant to be used as optional **output**
 ; sky_mag should be **mags per sq asec**
-; source catalog meant to be used as optional output
+; source_catalog meant to be used as optional output
+; galaxy_catalog meant to be used as optional output
 
   if ~keyword_set(sky_mag) then sky_mag = 20.6
 ; DESI-2549, IN.CI-91010 "Assuming nominal 5 sec exposures"
@@ -739,6 +741,9 @@ function ci_sim_1extname, extname, sky_mag=sky_mag, acttime=acttime, $
   im_sources_e = sources_only_image(fwhm_pix, acttime, $
       astr, do_gaia_sources=do_gaia_sources, $ 
       source_catalog=source_catalog)*flat
+
+  galaxy_catalog = galaxies_1cam(astr)
+help,galaxy_catalog
 
   im_electrons += im_sources_e
 ; this isn't formally the precisely right thing to do but w/e
@@ -804,7 +809,8 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
                            fwhm_asec=fwhm_asec, fwhm_pix=fwhm_pix,astr=astr, $
                            do_gaia_sources=do_gaia_sources, $
                            source_catalog=source_catalog, $
-                           force_symmetric=force_symmetric)
+                           force_symmetric=force_symmetric, $
+                           galaxy_catalog=galaxy_catalog)
 
       primary = (i EQ 0)
       h = ci_header_1extname(extname, im, acttime, t_celsius, $
@@ -820,6 +826,11 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
               joint_catalog = source_catalog else $
               joint_catalog = struct_append(joint_catalog, source_catalog)
       endif
+      if size(galaxy_catalog, /type) EQ 8 then begin
+          if ~keyword_set(joint_g_catalog) then $
+              joint_g_catalog = galaxy_catalog else $
+              joint_g_catalog = struct_append(joint_g_catalog, galaxy_catalog)
+      endif
       delvarx, source_catalog
   endfor
 
@@ -830,6 +841,9 @@ pro ci_sim, outname, telra=telra, teldec=teldec, sky_mag=sky_mag, $
       outname_cat = repstr(outname, '.fits', '.cat.fits')
       if file_test(outname_cat) then stop
       mwrfits, joint_catalog, outname_cat
+      if size(joint_g_catalog, /type) EQ 8 then begin
+          mwrfits, joint_g_catalog, outname_cat
+      endif
   endif
 
 end
@@ -1003,8 +1017,11 @@ pro ci_pointings, indstart, nproc
   COMMON _CI_TILES, ci_tiles
 
   ci_tiles = ci_tiles[where(ci_tiles.in_desi)]
-
   ntiles = n_elements(ci_tiles)
+
+  seed = 99L
+  sind = sort(randomu(seed, ntiles))
+  ci_tiles = ci_tiles[sind]
 
   indend = (indstart + nproc - 1) < (ntiles - 1)
 

@@ -1006,7 +1006,8 @@ end
 pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric, $
                   acttime=acttime, sky_mag=sky_mag, fwhm_asec=fwhm_asec
 
-  if ~keyword_set(outdir) then outdir = '$SCRATCH/sims'
+  if ~keyword_set(outdir) then $
+      outdir = '/global/cscratch1/sd/ameisner/ci_tile_sims'
 
   dummy_ext = 1 ; HARDCODED !
 
@@ -1029,9 +1030,32 @@ pro ci_1pointing, tileid, outdir=outdir, force_symmetric=force_symmetric, $
 
 end
 
+pro _ci_pointing_rand_params, tileid, fwhm_asec, exptime, sky_mag
+
+  ; tileid should be scalar and is an input
+  ; fwhm_asec, exptime, sky_mag are outputs
+
+  if n_elements(tileid) NE 1 then stop
+
+  seed = tileid
+
+; b/w 0.8 and 1.8
+  fwhm_asec = randomu(seed)*1.0 + 0.8
+
+; b/w 5 and 30 inclusive, with integer values
+  exptime = long(round(5.0 + randomu(seed)*25.0))
+
+; b/w 19.6 and 20.6
+  sky_mag = 19.6 + randomu(seed)
+
+  if n_elements(fwhm_asec) NE 1 then stop
+  if n_elements(exptime) NE 1 then stop
+  if n_elements(sky_mag) NE 1 then stop
+
+end
+
 ; .COM mwrfits
-pro ci_pointings, indstart, nproc, acttime=acttime, sky_mag=sky_mag, $
-                  fwhm_asec=fwhm_asec
+pro ci_pointings, indstart, nproc
 
   _cache_ci_tiles
   COMMON _CI_TILES, ci_tiles
@@ -1046,6 +1070,7 @@ pro ci_pointings, indstart, nproc, acttime=acttime, sky_mag=sky_mag, $
   indend = (indstart + nproc - 1) < (ntiles - 1)
 
   for i=indstart, indend do begin
+      _ci_pointing_rand_params, ci_tiles[i].tileid, fwhm_asec, acttime, sky_mag
       ci_1pointing, ci_tiles[i].tileid, acttime=acttime, sky_mag=sky_mag, $
           fwhm_asec=fwhm_asec
   endfor
